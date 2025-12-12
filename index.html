@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 배경 - 두상과 정육면체</title>
+    <style>
+        /* 홈페이지 배경 설정을 위한 CSS */
+        body {
+            margin: 0;
+            overflow: hidden; /* 스크롤바 제거 */
+            background-color: #111; /* 배경색 (캔버스가 로드되기 전) */
+        }
+
+        #bg-canvas {
+            position: fixed; /* 화면에 고정 */
+            top: 0;
+            left: 0;
+            width: 100vw; /* 뷰포트 전체 너비 */
+            height: 100vh; /* 뷰포트 전체 높이 */
+            z-index: -1; /* 다른 콘텐츠보다 뒤로 배치 */
+            outline: none;
+        }
+        
+        /* (선택사항) 3D 배경 위에 올라갈 실제 웹사이트 콘텐츠 예시 */
+        .content {
+            position: relative;
+            z-index: 1;
+            color: white;
+            text-align: center;
+            padding-top: 20vh;
+            font-family: sans-serif;
+        }
+        .content h1 { font-size: 3em; }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="content">
+        <h1>My Awesome Website</h1>
+        <p>여기에 실제 홈페이지 내용이 들어갑니다.</p>
+    </div>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // --- 1. 기본 장면 설정 (Scene Setup) ---
+        const scene = new THREE.Scene();
+        // 배경색을 약간 어둡게 설정 (CSS 배경색과 별도)
+        scene.background = new THREE.Color(0x111111); 
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5; // 카메라를 뒤로 배치
+
+        const canvas = document.querySelector('#bg-canvas');
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+
+        // 조명 추가 (안쪽 두상이 잘 보이도록)
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // 전체 은은한 빛
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0xffffff, 1); // 포인트 조명
+        pointLight.position.set(5, 5, 5);
+        scene.add(pointLight);
+
+
+        // --- 2. 바깥쪽 정육면체 (Cube) 만들기 ---
+        const cubeGeometry = new THREE.BoxGeometry(3.5, 3.5, 3.5); // 두상보다 더 큰 크기
+        // 안이 보이도록 와이어프레임 재질 사용 (또는 투명도 설정 가능)
+        const cubeMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x00ff88, // 형광 초록색
+            wireframe: true, // 선으로만 표현
+            transparent: true, 
+            opacity: 0.5 
+        });
+        const outerCube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        scene.add(outerCube);
+
+
+        // --- 3. 안쪽 두상 (Head) 만들기 (임시 모델) ---
+        // 중요: 실제 사용자의 두상 모델 로드 코드가 있다면 이 부분을 교체해야 합니다.
+        // 여기서는 두상을 대신할 복잡한 모양(TorusKnot)을 임시로 사용합니다.
+        const headGeometry = new THREE.TorusKnotGeometry(0.8, 0.3, 100, 16);
+        const headMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0xffaa00, // 주황색
+            metalness: 0.5,
+            roughness: 0.1
+        });
+        const innerHead = new THREE.Mesh(headGeometry, headMaterial);
+
+        // [요청사항 반영] 얼굴 크기 2배 키우기
+        // 기존 크기 대비 2배로 스케일 설정 (x, y, z 축 모두)
+        innerHead.scale.set(2, 2, 2); 
+        
+        scene.add(innerHead);
+
+
+        // --- 4. 애니메이션 및 회전 설정 ---
+        // 서로 다른 회전 속도 정의
+        const cubeRotationSpeed = { x: 0.002, y: 0.003 }; // 큐브는 천천히
+        const headRotationSpeed = { x: 0.005, y: -0.01 }; // 두상은 빠르게 반대로
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // [요청사항 반영] 각기 다른 속도로 회전
+            // 바깥 큐브 회전
+            outerCube.rotation.x += cubeRotationSpeed.x;
+            outerCube.rotation.y += cubeRotationSpeed.y;
+
+            // 안쪽 두상 회전
+            innerHead.rotation.x += headRotationSpeed.x;
+            innerHead.rotation.y += headRotationSpeed.y;
+
+            renderer.render(scene, camera);
+        }
+
+        // 애니메이션 시작
+        animate();
+
+
+        // --- 5. 반응형 처리 (창 크기 변경 시) ---
+        window.addEventListener('resize', onWindowResize, false);
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+    </script>
+</body>
+</html>
